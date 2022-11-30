@@ -33,8 +33,8 @@ class Genetic:
                           "C": {"A": 2, "B": 2, "C": 0, "D": 1},
                           "D": {"A": 3, "B": 3, "C": 1, "D": 0}}
         np.random.seed(42)
-        for i in range(9):
-            self.population.append(np.random.permutation(self.chromosome))
+        for i in range(10):
+            self.population.append(np.random.permutation(self.chromosome).tolist())
 
     def fitness(self, pop: list) -> int:
         schedule = {"A": [],
@@ -51,36 +51,85 @@ class Genetic:
             schedule["C"].extend(first_hour[5:8] + sec_hour[5:8] + third_hour[5:8] + fourth_hour[5:8])
             schedule["D"].extend(first_hour[8:] + sec_hour[8:] + third_hour[8:] + fourth_hour[8:])
 
+        # fitness = 0
+        # fitnesses = []
         cost = 0
+
+
         for student in self.residence_a:
             for course in student:
                 for building in ["A", "B", "C", "D"]:
                     cost += self.distances["residence_a"][building] if self.encoding[course] in schedule[
                         building] else 0
+                    #fitnesses.append(1 / self.distances["residence_a"][building] if self.encoding[course] in schedule[
+                       # building] else 0)
+
         for student in self.residence_b:
             for course in student:
                 for building in ["A", "B", "C", "D"]:
-                    cost += self.distances["residence_a"][building] if self.encoding[course] in schedule[
+                    cost += self.distances["residence_b"][building] if self.encoding[course] in schedule[
                         building] else 0
+                    # fitnesses.append(1 / self.distances["residence_b"][building] if self.encoding[course] in schedule[
+                    #     building] else 0)
 
         for student in self.residence_c:
             for course in student:
                 for building in ["A", "B", "C", "D"]:
-                    cost += self.distances["residence_a"][building] if self.encoding[course] in schedule[
+                    cost += self.distances["residence_c"][building] if self.encoding[course] in schedule[
                         building] else 0
+                    # fitnesses.append(1 / self.distances["residence_c"][building] if self.encoding[course] in schedule[
+                    #     building] else 0)
 
-        fitness = (1 / np.sqrt(cost)) * 1000
+        # fitness = (1 / np.sqrt(cost)) * 1000
 
-        return fitness
+        fitness = 1/np.sqrt(cost) * 100
 
-    def selection(self):
-        pass
+        return fitness  # , fitnesses #fitness, costs
 
-    def crossover(self):
-        pass
+    def loop(self, generations: int):
+        fitnesses = []
+        for i in range(generations):
+            fitness = self.fitness(self.population)
+            chromosomes = random.sample(self.population, 2)
+            chromes = self.crossover(chromosomes, rate=0.7)
+            mutated_chromes = self.mutate(chromes, rate=0.7)
+            # population = [l for l in self.population]
+            new_pop = [organism for organism in self.population if organism not in chromosomes]
+            new_pop.extend(mutated_chromes)
+            assert len(new_pop) == len(self.population), "Length is not the same for populations"
+            new_pop_fitness = self.fitness(new_pop)
+            if new_pop_fitness > fitness:
+                self.population = new_pop
+                fitnesses.append(new_pop_fitness)
 
-    def mutate(self):
-        pass
+            print(sum(fitnesses))
+        return fitnesses
+
+
+    def crossover(self, chromosomes: list, rate: float) -> list:
+        first_chromosome, second_chromosome = list(chromosomes)
+        chrome_a = list(first_chromosome[:20]) + list(second_chromosome[20:])
+        chrome_b = list(second_chromosome[:20]) + list(first_chromosome[20:])
+        chromes = []
+        random_num = random.random()
+        if random_num < rate:
+            chromes.append(chrome_a)
+            chromes.append(chrome_b)
+            return chromes
+        else:
+            return chromosomes
+
+    def mutate(self, chromosomes: list, rate: float) -> list:
+        rand_num = random.random()
+        first_chrome, second_chrome = chromosomes
+        chromes = []
+        if rand_num < rate:
+            random.shuffle(first_chrome)
+            random.shuffle(second_chrome)
+
+        chromes.append(first_chrome)
+        chromes.append(second_chrome)
+        return chromes
 
     def __repr__(self):
         return f'A representation of the genetic algorithm class'
@@ -88,8 +137,4 @@ class Genetic:
 
 if __name__ == "__main__":
     gen = Genetic()
-    print(gen.info)
-    print("Encodings", gen.encoding)
-    print("Fitness(population)", gen.fitness(gen.population))
-    print(gen.fitness(gen.population))
-    print(gen.residence_a)
+    gen.loop(200)
