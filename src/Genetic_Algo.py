@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import random
+import matplotlib.pyplot as plt
 
 
 class Genetic:
@@ -9,6 +10,14 @@ class Genetic:
     """
 
     def __init__(self, buildings=None, residences=None) -> None:
+        """
+        The following are performed in this __init__ function
+        - Initialize the genetic algorithm class
+        - reads in timetable data
+        - Encodes courses to integers ranging from [0,37]
+        - Initialize a population
+        """
+
         data = pd.read_csv("data/students.csv")[["mandatory_1", "mandatory_2",
                                                  "mandatory_3", "elective_1",
                                                  "elective_2"]]
@@ -33,10 +42,15 @@ class Genetic:
                           "C": {"A": 2, "B": 2, "C": 0, "D": 1},
                           "D": {"A": 3, "B": 3, "C": 1, "D": 0}}
         np.random.seed(42)
-        for i in range(10):
+        for i in range(30):
             self.population.append(np.random.permutation(self.chromosome).tolist())
 
     def fitness(self, pop: list) -> int:
+        """
+        returns the total fitness of the gene pool
+        :param pop: gene pool (population)
+        :return: fitness value of the gene pool
+        """
         schedule = {"A": [],
                     "B": [],
                     "C": [],
@@ -55,45 +69,36 @@ class Genetic:
         # fitnesses = []
         cost = 0
 
-
         for student in self.residence_a:
             for course in student:
                 for building in ["A", "B", "C", "D"]:
                     cost += self.distances["residence_a"][building] if self.encoding[course] in schedule[
                         building] else 0
-                    #fitnesses.append(1 / self.distances["residence_a"][building] if self.encoding[course] in schedule[
-                       # building] else 0)
 
         for student in self.residence_b:
             for course in student:
                 for building in ["A", "B", "C", "D"]:
                     cost += self.distances["residence_b"][building] if self.encoding[course] in schedule[
                         building] else 0
-                    # fitnesses.append(1 / self.distances["residence_b"][building] if self.encoding[course] in schedule[
-                    #     building] else 0)
 
         for student in self.residence_c:
             for course in student:
                 for building in ["A", "B", "C", "D"]:
                     cost += self.distances["residence_c"][building] if self.encoding[course] in schedule[
                         building] else 0
-                    # fitnesses.append(1 / self.distances["residence_c"][building] if self.encoding[course] in schedule[
-                    #     building] else 0)
 
-        # fitness = (1 / np.sqrt(cost)) * 1000
+        fitness = 1 / np.sqrt(cost) * 100
 
-        fitness = 1/np.sqrt(cost) * 100
+        return fitness
 
-        return fitness  # , fitnesses #fitness, costs
-
-    def loop(self, generations: int):
+    def loop(self, generations: int) -> list:
         fitnesses = []
+        fitness_sums = []
         for i in range(generations):
             fitness = self.fitness(self.population)
             chromosomes = random.sample(self.population, 2)
             chromes = self.crossover(chromosomes, rate=0.7)
             mutated_chromes = self.mutate(chromes, rate=0.7)
-            # population = [l for l in self.population]
             new_pop = [organism for organism in self.population if organism not in chromosomes]
             new_pop.extend(mutated_chromes)
             assert len(new_pop) == len(self.population), "Length is not the same for populations"
@@ -102,11 +107,18 @@ class Genetic:
                 self.population = new_pop
                 fitnesses.append(new_pop_fitness)
 
-            print(sum(fitnesses))
-        return fitnesses
+            fitness_sums.append(sum(fitnesses))
+        plt.grid()
+        plt.plot(fitness_sums)
+        plt.xlabel("Generation")
+        plt.ylabel("Total Fitness")
+        plt.show()
+        plt.close()
+        print(f"Length of new population: {len(self.population)}")
+        return self.population
 
-
-    def crossover(self, chromosomes: list, rate: float) -> list:
+    @staticmethod
+    def crossover(chromosomes: list, rate: float) -> list:
         first_chromosome, second_chromosome = list(chromosomes)
         chrome_a = list(first_chromosome[:20]) + list(second_chromosome[20:])
         chrome_b = list(second_chromosome[:20]) + list(first_chromosome[20:])
@@ -119,7 +131,8 @@ class Genetic:
         else:
             return chromosomes
 
-    def mutate(self, chromosomes: list, rate: float) -> list:
+    @staticmethod
+    def mutate(chromosomes: list, rate: float) -> list:
         rand_num = random.random()
         first_chrome, second_chrome = chromosomes
         chromes = []
@@ -137,4 +150,9 @@ class Genetic:
 
 if __name__ == "__main__":
     gen = Genetic()
-    gen.loop(200)
+    new_pop = gen.loop(generations=20000)
+    timetable_ = random.choice(new_pop)
+    timetable = []
+    for i in timetable_:
+        timetable.append(gen.info[i])
+    print(timetable)
