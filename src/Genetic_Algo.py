@@ -1,3 +1,6 @@
+import copy
+import operator
+
 import numpy as np
 import pandas as pd
 import random
@@ -41,8 +44,12 @@ class Genetic:
                           "B": {"A": 1, "B": 0, "C": 2, "D": 3},
                           "C": {"A": 2, "B": 2, "C": 0, "D": 1},
                           "D": {"A": 3, "B": 3, "C": 1, "D": 0}}
+        self.pop_size = 100
+        self.n_keep = 5
+        self.n_reproduce = self.pop_size // self.n_keep
+
         np.random.seed(42)
-        for i in range(30):
+        for i in range(self.pop_size):
             self.population.append(np.random.permutation(self.chromosome).tolist())
 
     def fitness(self, pop: list) -> int:
@@ -95,23 +102,33 @@ class Genetic:
         fitnesses = []
         fitness_sums = []
         for i in range(generations):
-            fitness = self.fitness(self.population)
-            chromosomes = random.sample(self.population, 2)
-            chromes = self.crossover(chromosomes, rate=0.7)
-            mutated_chromes = self.mutate(chromes, rate=0.7)
-            new_pop = [organism for organism in self.population if organism not in chromosomes]
-            new_pop.extend(mutated_chromes)
-            assert len(new_pop) == len(self.population), "Length is not the same for populations"
-            new_pop_fitness = self.fitness(new_pop)
-            if new_pop_fitness > fitness:
-                self.population = new_pop
-                fitnesses.append(new_pop_fitness)
+            fitnesses = [(idx, self.fitness([individual])) for idx, individual in enumerate(self.population)]
+            # fitness = self.fitness(self.population)
+            most_fit = sorted(fitnesses, key=operator.itemgetter(1), reverse=True)
+            fitness_sums.append(most_fit[0][1])
+            chromosomes = []
 
-            fitness_sums.append(sum(fitnesses))
+            # chromosomes = random.sample(self.population, 2)
+            # chromes = self.crossover(chromosomes, rate=0.7)
+
+            new_pop = []
+            for idx, _ in most_fit[:self.n_keep]:
+                parent = self.population[idx]
+                children = [self.mutated_child(parent, rate=1) for _ in range(self.n_reproduce - 1)]
+                children.append(parent)
+                new_pop += children
+            # assert len(new_pop) == len(self.population), "Length is not the same for populations"
+            #if new_pop_fitness > fitness:
+            #    self.population = new_pop
+            #    fitnesses.append(new_pop_fitness)
+            #    mutated_chromes = self.mutate(chromes, rate=0.7)
+
+            self.population = new_pop
         plt.grid()
         plt.plot(fitness_sums)
         plt.xlabel("Generation")
         plt.ylabel("Total Fitness")
+        plt.title("Total Fitness over the generations")
         plt.show()
         plt.close()
         print(f"Length of new population: {len(self.population)}")
@@ -132,17 +149,12 @@ class Genetic:
             return chromosomes
 
     @staticmethod
-    def mutate(chromosomes: list, rate: float) -> list:
-        rand_num = random.random()
-        first_chrome, second_chrome = chromosomes
-        chromes = []
-        if rand_num < rate:
-            random.shuffle(first_chrome)
-            random.shuffle(second_chrome)
-
-        chromes.append(first_chrome)
-        chromes.append(second_chrome)
-        return chromes
+    def mutated_child(individual: list, rate: float) -> list:
+        # TODO: Only slightly mutate with a strength based on the rate
+        child = copy.deepcopy(individual)
+        if random.random() < rate:
+            random.shuffle(child)
+        return child
 
     def __repr__(self):
         return f'A representation of the genetic algorithm class'
@@ -150,7 +162,7 @@ class Genetic:
 
 if __name__ == "__main__":
     gen = Genetic()
-    new_pop = gen.loop(generations=20000)
+    new_pop = gen.loop(generations=1000)
     timetable_ = random.choice(new_pop)
     timetable = []
     for i in timetable_:
