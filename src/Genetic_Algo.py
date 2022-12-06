@@ -118,7 +118,7 @@ class Genetic:
                 children.append(parent)
                 new_pop += children
             # assert len(new_pop) == len(self.population), "Length is not the same for populations"
-            #if new_pop_fitness > fitness:
+            # if new_pop_fitness > fitness:
             #    self.population = new_pop
             #    fitnesses.append(new_pop_fitness)
             #    mutated_chromes = self.mutate(chromes, rate=0.7)
@@ -136,6 +136,15 @@ class Genetic:
 
     @staticmethod
     def crossover(chromosomes: list, rate: float) -> list:
+        """
+        A function that performs a crossover for the chromosomes at a probability of `rate`
+        Args:
+            chromosomes: A vector of two chromosomes
+            rate: The probability of crossover
+
+        Returns: List of crossovered items.
+
+        """
         first_chromosome, second_chromosome = list(chromosomes)
         chrome_a = list(first_chromosome[:20]) + list(second_chromosome[20:])
         chrome_b = list(second_chromosome[:20]) + list(first_chromosome[20:])
